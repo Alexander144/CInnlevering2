@@ -5,9 +5,10 @@ Val = --leak-check=full --show-leak-kinds=all
 Vg = valgrind
 Prog = Program
 TARGET = songLibrary/timber.txt
+TARGET2 = Text.txt
 Compile: $(File)
 		$(CC) $(Flags) $(Prog) $(File)
 Valgrind: $(File)
-		$(Vg) $(Val) ./$(Prog) $(TARGET)
+		$(Vg) $(Val) ./$(Prog) $(TARGET)$(TARGET2)
 
 
