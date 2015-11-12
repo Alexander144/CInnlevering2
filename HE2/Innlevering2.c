@@ -38,12 +38,16 @@ void PrintFile(char *TheSong, int *Count)
 	}
 }
 
-char *BeReadyForCryp(char *TheSong, char *TheSong2, int *Count)
+char *BeReadyForCryp(char *TheSong, char *TheSong2, int *Count, int *CountSongNew)
 {
 	int i;
 	int l = 0;
 	for(i = 0; i<=*Count; i++)
 	{
+		if(l==*Count)
+		{
+			TheSong2 = (char*) realloc(TheSong2,2*l*sizeof(char));
+		}
 		if(TheSong[i]>='A' && TheSong[i]<='Z')
 		{			
 			TheSong2[l]=TheSong[i]+32;			
@@ -55,11 +59,11 @@ char *BeReadyForCryp(char *TheSong, char *TheSong2, int *Count)
 			l++;
 		}
 	}
-	TheSong2 = (char*) realloc(TheSong2,(*Count-l)*sizeof(char));	
+	*CountSongNew = l;
 	return TheSong2;
 }
 
-void Cryp(char *TheSong, int *CountSong, char *Text, int *CountText)
+void Cryp(char *TheSong2, int *CountSongNew, char *Text, int *CountText)
 {
 	FILE *f = fopen("Secret.txt", "w");
 	if (f == NULL)
@@ -71,14 +75,14 @@ void Cryp(char *TheSong, int *CountSong, char *Text, int *CountText)
 	int h;
 	for(h = 0; h<=*CountText; h++)
 	{
-		for(i = 0; i<=*CountSong; i++)
+		for(i = 0; i<=*CountSongNew; i++)
 		{
-			if(TheSong[i]==Text[h] && TheSong[i]>=97 && TheSong[i]<=122 && Text[h]>=97 && Text[h]<=122)
+			if(TheSong2[i]==Text[h] && TheSong2[i]>=97 && TheSong2[i]<=122 && Text[h]>=97 && Text[h]<=122)
 			{
 				fprintf(f,"[%d]",i);
 				break;
 			}
-			else if(TheSong[i]==Text[h]+32 && TheSong[i]>=97 && TheSong[i]<=122 && Text[h]>=65 && Text[h]<=90)
+			else if(TheSong2[i]==Text[h]+32 && TheSong2[i]>=97 && TheSong2[i]<=122 && Text[h]>=65 && Text[h]<=90)
 			{
 				fprintf(f,"[%d]",-i);
 				break;
@@ -92,33 +96,54 @@ void Cryp(char *TheSong, int *CountSong, char *Text, int *CountText)
 	}
 	fclose(f);
 }
-void DeCrypt(char *TheSong, char *CryptText, int *CountSong, int *NewCryptCount)
+void DeCrypt(char *TheSong2, char *CryptText, int *CountSong, int *NewCryptCount)
 {
 	int i;
 	int h;
+	int o = 1;
 	for(h = 0; h<=*NewCryptCount; h++)
 	{
 		for(i = 0; i<=*CountSong; i++)
 		{
-			if(i==CryptText[h] && CryptText[h]<0 && TheSong[i]>=65 && TheSong[i]<=90 && CryptText[h]>=48 && CryptText[h]<=57)
+			//printf("%c",TheSong2[i]);
+			if(CryptText[h]=='-' && CryptText[h-1] == '[')
 			{
-				int buffer = i-32;
-				printf("%c", TheSong[i]);
-				break;
+				printf("%c",CryptText[h-1]);
+				o = o * -1;
 			}
-			else if(i==CryptText[h] && CryptText[h]>0 && TheSong[i]>=97 && TheSong[i]<=122 && CryptText[h]>=48 && CryptText[h]<=57)
+			if(i==CryptText[h] && CryptText[h]>=48 && CryptText[h]<=57)
 			{
-				printf("%c",TheSong[i]);
+				if(o == -1)
+				{
+					//printf("Big");
+					printf("%c", TheSong2[i]+32);
+					o = o * -1;
+				}
+				else
+				{
+					//printf("small");
+					printf("%c", TheSong2[i]);
+				}
 				break;
 			}
 			else if(CryptText[h] == 32 || CryptText[h] >=44 && CryptText[h]<=46)
 			{	
-				printf("%c",CryptText[h]);
+				if(CryptText[h] == 45 && !(CryptText[h-1]=='['))
+				{
+					printf("%c",CryptText[h]);
+				}
+				else
+				{	
+					printf("%c",CryptText[h]);	
+				}
 				break;
 			}
+			
 		}
+		//printf("dette er :%d",o);
 	}
 }
+
 int main(int argc, char *argv[])
 {
 	char *FileSong = argv[1];
@@ -127,21 +152,22 @@ int main(int argc, char *argv[])
 	TheSong = ReadFile(FileSong, TheSong, CountSong);
 
 	char *TheSong2 = (char*)malloc(*CountSong*sizeof(char));
-	TheSong2 = BeReadyForCryp(TheSong,TheSong2, CountSong);	
-	PrintFile(TheSong2, CountSong);
+	int *CountSongNew = (int*)malloc(j*sizeof(int));
+	TheSong2 = BeReadyForCryp(TheSong,TheSong2, CountSong, CountSongNew);	
+	//PrintFile(TheSong2, CountSong);
 	
 	char *FileText = argv[2];
 	char *Text = (char*)malloc(j*sizeof(char));
 	int *CountText = (int*)malloc(j*sizeof(int));	
 	int *CryptCount = (int*)malloc(j*sizeof(int));
 	Text = ReadFile(FileText, Text, CountText);
-	Cryp(TheSong2, CountSong, Text, CountText);
+	Cryp(TheSong2, CountSongNew, Text, CountText);
 	
 	char *SecretText = "Secret.txt";
 	char *CryptText = (char*)malloc(j*sizeof(char));
 	int *NewCryptCount = CryptCount;
 	CryptText = ReadFile(SecretText, CryptText, NewCryptCount);
-	DeCrypt(TheSong, CryptText, CountSong, NewCryptCount);
+	DeCrypt(TheSong2, CryptText, CountSongNew, NewCryptCount);
 	free(TheSong);	
 	free(CountSong);
 	free(CountText);
